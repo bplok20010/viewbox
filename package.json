@@ -1,0 +1,50 @@
+{
+  "name": "@bplok20010/viewbox",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/lib/index.d.ts",
+  "scripts": {
+    "build": "run-s test clean lib cjs esm",
+    "cjs": "tsc --module commonjs --target ES5 --outDir dist/cjs --declaration false",
+    "esm": "tsc --module esnext --target ES5 --outDir dist/esm --declaration false",
+    "lib": "tsc",
+    "clean": "rimraf dist",
+    "prepublishOnly": "run-s build",
+    "test": "jest",
+    "release": "release-it"
+  },
+  "keywords": [
+    "viewbox",
+    "matrix",
+    "viewport"
+  ],
+  "files": [
+    "dist",
+    "*.md"
+  ],
+  "author": "nobo.zhou@foxmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "devDependencies": {
+    "@babel/runtime": "^7.19.4",
+    "@types/jest": "^28.1.1",
+    "jest": "^28.1.3",
+    "npm-run-all": "^4.1.5",
+    "release-it": "^15.1.0",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^28.0.7",
+    "typescript": "^4.8.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "matrix2d.js": "^0.4.0"
+  }
+}
