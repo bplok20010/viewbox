@@ -13,7 +13,7 @@
     "@types/dat.gui": "^0.7.7",
     "dat.gui": "^0.7.9",
     "matrix2d.js": "0.4.0",
-    "packez": "^5.0.0",
+    "packez": "^5.0.2",
     "react": "18.0.0",
     "react-dom": "18.0.0"
   },
