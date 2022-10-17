@@ -17,7 +17,7 @@ function isUndefined(value: any) {
 }
 
 /**
- * ViewBox
+ * ViewBox v0.5
  */
 export class ViewBox {
   protected options: IViewBoxOptions;

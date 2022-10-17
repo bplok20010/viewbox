@@ -46,6 +46,7 @@ export default function App() {
     const viewBox = new ViewBox({
       width: vw,
       height: vh,
+      transformOrigin: center,
     });
 
     const update = () => {
@@ -124,12 +125,14 @@ export default function App() {
         x: setting.cx,
         y: setting.cy,
       });
+      viewBox.setTransformOrigin(setting.cx, setting.cy);
     });
     folder1.add(setting, "cy", 0, vh, 1).onChange((value: number) => {
       setCenter({
         x: setting.cx,
         y: setting.cy,
       });
+      viewBox.setTransformOrigin(setting.cx, setting.cy);
     });
   }, []);
 

@@ -1,7 +1,9 @@
-module.exports = function (webpack) {
+module.exports = function () {
   return {
     webpack(config) {
-      config.output.publicPath = "./";
+      if (config.mode !== "development") {
+        config.output.publicPath = "./";
+      }
 
       return config;
     },
