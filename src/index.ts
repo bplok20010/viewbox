@@ -7,18 +7,19 @@ export interface IViewBoxOptions {
   y?: number;
   width?: number;
   height?: number;
+  transformOrigin?: IPoint;
 }
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 400;
 
 /**
- * ViewBox v1
+ * ViewBox
  */
 export class ViewBox {
   protected options: IViewBoxOptions;
   protected matrix = new Matrix2D();
-  protected transformOrigin: IPoint;
+  protected transformOrigin: IPoint = { x: 0, y: 0 };
 
   protected transform = {
     scale: 1,
@@ -29,6 +30,8 @@ export class ViewBox {
     skewY: 0,
     flipX: false,
     flipY: false,
+    // translateX: 0,
+    // translateY: 0,
   };
 
   width = DEFAULT_WIDTH;
@@ -39,6 +42,8 @@ export class ViewBox {
     this.width = options.width ?? DEFAULT_WIDTH;
     this.height = options.height ?? DEFAULT_HEIGHT;
 
+    this.transformOrigin = options.transformOrigin || this.transformOrigin;
+
     this.x = options.x ?? 0;
     this.y = options.y ?? 0;
   }
@@ -47,20 +52,12 @@ export class ViewBox {
     return this.matrix.decompose();
   }
 
-  get currentScale() {
-    return this.transform.scale;
-  }
-
-  get currentRotation() {
-    return this.transform.rotation;
-  }
-
   protected get cx() {
-    return this.transformOrigin ? this.transformOrigin.x : this.width / 2;
+    return this.transformOrigin.x;
   }
 
   protected get cy() {
-    return this.transformOrigin ? this.transformOrigin.y : this.height / 2;
+    return this.transformOrigin.y;
   }
 
   setTransformOrigin(x: number, y: number) {
@@ -111,7 +108,7 @@ export class ViewBox {
   }
 
   /**
-   * 相对viewBox左上角的坐标转换为viewBox的实际坐标
+   * 绝对坐标(相对viewBox)转本地坐标(viewBox内容实际坐标)
    * @examples
    * viewBox.translate(100, 100)
    * viewBox.globalToLocal(0, 0) // {x: -100, y: -100}
@@ -121,15 +118,21 @@ export class ViewBox {
   }
 
   /**
-   * 相对viewBox左上角的坐标转换为viewBox的实际坐标
+   * 本地坐标(viewBox内容实际坐标)转绝对坐标(相对viewBox)
    * @examples
    * viewBox.translate(100, 100)
-   * viewBox.globalToLocal(0, 0) // {x: -100, y: -100}
+   * viewBox.localToGlobal(-100, -100) // {x: 0, y: 0}
    */
   localToGlobal(x: number, y: number) {
     return this.matrix.transformPoint(x, y);
   }
 
+  /**
+   * 对viewBox内容进行平移
+   * @param x 相对viewBox的（绝对坐标）x偏移量
+   * @param y 同上 y偏移量
+   * @returns
+   */
   translate(x: number, y: number) {
     const r1 = this.globalToLocal(0, 0);
     const r2 = this.globalToLocal(x, y);
@@ -147,6 +150,12 @@ export class ViewBox {
     return this.translate(0, y);
   }
 
+  /**
+   * 对viewBox内容进行缩放，cx,cy均指相对viewBox（绝对坐标）
+   * 缩放值scaleX 和 scaleY 叠加上一个缩放值，eg: scale(2,2) scale(3,3) 实际缩放内容为：x、y都缩放了6倍
+   * @param scaleX
+   * @param scaleY
+   */
   scale(scaleX: number, scaleY: number): ViewBox;
   scale(scaleX: number, scaleY: number, cx: number, cy: number): ViewBox;
   scale(scaleX: number, scaleY: number, cx?: number, cy?: number) {
@@ -160,6 +169,10 @@ export class ViewBox {
     return this;
   }
 
+  /**
+   * 对viewBox内容进行旋转，cx,cy均指相对viewBox（绝对坐标）
+   * @param rotation 需要旋转的角度，该值会和上一次选择值叠加，eg: rotate(10) rotate(10)，实际旋转角度为：20
+   */
   rotate(rotation: number): ViewBox;
   rotate(rotation: number, cx: number, cy: number): ViewBox;
   rotate(rotation: number, cx?: number, cy?: number) {
@@ -172,6 +185,10 @@ export class ViewBox {
     return this;
   }
 
+  /**
+   * x 轴翻转，多次调用侧反复翻转
+   * cx,cy均指相对viewBox（绝对坐标）
+   */
   flipX(): ViewBox;
   flipX(cx: number, cy: number): ViewBox;
   flipX(cx?: number, cy?: number) {
@@ -184,6 +201,10 @@ export class ViewBox {
     return this;
   }
 
+  /**
+   * y 轴翻转，多次调用侧反复翻转
+   * cx,cy均指相对viewBox（绝对坐标）
+   */
   flipY(): ViewBox;
   flipY(cx: number, cy: number): ViewBox;
   flipY(cx?: number, cy?: number) {
@@ -233,9 +254,8 @@ export class ViewBox {
   }
 
   /**
-   * 视图缩放
+   * 视图缩放，该缩放值是全量值，多次调用会覆盖上一次，如：setZoom(2) setZoom(4)，实际的缩放值为：4
    * @param value 缩放值，全量值
-   * @param zoomPoint 缩放坐标。默认为当前视图中心点
    */
   setZoom(value: number): ViewBox;
   setZoom(value: number, cx: number, cy: number): ViewBox;
@@ -253,6 +273,10 @@ export class ViewBox {
     return this;
   }
 
+  /**
+   * 视图旋转，该缩放值是全量值，多次调用会覆盖上一次，如：setRotation(10) setZoom(30)，实际的缩放值为：30
+   * @param value 旋转角度，全量值
+   */
   setRotation(rotation: number): ViewBox;
   setRotation(rotation: number, cx: number, cy: number): ViewBox;
   setRotation(rotation: number, cx?: number, cy?: number) {
@@ -268,84 +292,35 @@ export class ViewBox {
   }
 
   /**
-   * 自动对指定区域进行缩放，并将区域中心移动到视图中心
+   * 自动对指定区域进行缩放，并将区域中心移动到指定的坐标，该区域为viewBox内容的实际区域，非全局坐标的区域
    * @param rect
    */
-  zoomToRect(rect: IRect, options: { scale?: number; padding?: number } = {}) {
-    const padding = options.padding ?? 40;
+  zoomToRect(
+    rect: IRect,
+    options: {
+      /**
+       * 自定义缩放值
+       */
+      scale?: number;
+      /**
+       * 距离viewbox的边界距离
+       */
+      padding?: number;
+      /**
+       * 自定义缩放中心坐标
+       */
+      transformOrigin?: IPoint;
+    } = {}
+  ) {
+    const padding = options.padding ?? 0;
 
     const vWidth = this.width - padding * 2;
     const vHeight = this.height - padding * 2;
 
-    //////////////////////////适配rect TODO://////////////////////////
-    // // 先将 scale 重置 1
-    // this.setZoom(1);
-    // // 将给定的相对坐标转换为绝对坐标
-    // let points = [
-    //   {
-    //     x: rect.x,
-    //     y: rect.y,
-    //   },
-    //   {
-    //     x: rect.x + rect.width,
-    //     y: rect.y,
-    //   },
-    //   {
-    //     x: rect.x + rect.width,
-    //     y: rect.y + rect.height,
-    //   },
-    //   {
-    //     x: rect.x,
-    //     y: rect.y + rect.height,
-    //   },
-    // ].map((point) => {
-    //   return this.localToGlobal(point.x, point.y);
-    // });
-
-    // let xX = points.map((point) => point.x);
-    // let yY = points.map((point) => point.y);
-
-    // let minX = Math.min(...xX);
-    // let minY = Math.min(...yY);
-    // let maxX = Math.max(...xX);
-    // let maxY = Math.max(...yY);
-
-    // // 构建全局的rect，
-    // rect = {
-    //   x: minX,
-    //   y: minY,
-    //   width: maxX - minX,
-    //   height: maxY - minY,
-    // };
-
-    // // 将坐标重新转换
-    // points = [
-    //   {
-    //     x: rect.x,
-    //     y: rect.y,
-    //   },
-    //   {
-    //     x: rect.x + rect.width,
-    //     y: rect.y + rect.height,
-    //   },
-    // ].map((point) => {
-    //   return this.globalToLocal(point.x, point.y);
-    // });
-
-    // // 再次构建新的rect
-    // rect = {
-    //   x: points[0].x,
-    //   y: points[0].y,
-    //   width: points[1].x - points[0].x,
-    //   height: points[1].y - points[0].y,
-    // };
-
-    //////////////////////////适配rect End//////////////////////////
-
     const scale = options.scale ?? Math.min(vWidth / rect.width, vHeight / rect.height);
 
-    const cx = this.width / 2;
-    const cy = this.height / 2;
+    const cx = options.transformOrigin ? options.transformOrigin.x : this.cx;
+    const cy = options.transformOrigin ? options.transformOrigin.y : this.cy;
 
     const rectCx = rect.x + rect.width / 2;
     const rectCy = rect.y + rect.height / 2;
