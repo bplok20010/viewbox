@@ -23,7 +23,8 @@
     "typescript": "4.4.2"
   },
   "scripts": {
-    "start": "packez server src/index"
+    "start": "packez server src/index",
+    "build": "packez build src/index"
   },
   "browserslist": [
     ">0.2%",
