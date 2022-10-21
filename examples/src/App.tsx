@@ -47,11 +47,11 @@ export default function App() {
       width: vw,
       height: vh,
       transformOrigin: center,
+      useDecompose: false,
     });
 
     const update = () => {
       updateMatrix(viewBox.toCSS());
-      console.log(viewBox.getMatrix().decompose());
     };
 
     var gui = new dat.gui.GUI();
@@ -86,17 +86,13 @@ export default function App() {
     });
 
     gui.add(setting, "skewX", -90, 90, 1).onChange((value: number) => {
-      viewBox.skewX(value - lastSkewX, setting.cx, setting.cy);
-
-      lastSkewX = value;
+      viewBox.setSkewX(value, setting.cx, setting.cy);
 
       update();
     });
 
     gui.add(setting, "skewY", -90, 90, 1).onChange((value: number) => {
-      viewBox.skewY(value - lastSkewY, setting.cx, setting.cy);
-
-      lastSkewY = value;
+      viewBox.setSkewY(value, setting.cx, setting.cy);
 
       update();
     });
