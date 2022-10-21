@@ -8,31 +8,103 @@ export interface IViewBoxOptions {
   width?: number;
   height?: number;
   transformOrigin?: IPoint;
+  /**
+   * 是否记录旋转、缩放等信息，否则使用decompose获取，不建议开启
+   */
+  useDecompose?: boolean;
 }
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 400;
 
+export interface ViewBoxJSON {
+  options: {
+    width: number;
+    height: number;
+    transformOrigin: IPoint;
+    useDecompose: boolean;
+  };
+  matrix: [number, number, number, number, number, number];
+  transform: {
+    x: number;
+    y: number;
+    rotation: number;
+    scaleX: number;
+    scaleY: number;
+    skewX: number;
+    skewY: number;
+  };
+}
 /**
  * ViewBox
  */
 export class ViewBox {
+  static formJSON({ options, matrix, transform }: ViewBoxJSON) {
+    const mtx = new Matrix2D(...matrix);
+
+    const viewBox = new ViewBox(options);
+
+    viewBox.setMatrix(mtx);
+
+    viewBox.transform = {
+      ...transform,
+    };
+
+    return viewBox;
+  }
+
   protected options: IViewBoxOptions;
   protected matrix = new Matrix2D();
   protected transformOrigin: IPoint = { x: 0, y: 0 };
+  protected useDecompose = false;
 
-  protected transform = {
-    scale: 1,
+  protected _transform = {
+    x: 0,
+    y: 0,
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
     skewX: 0,
     skewY: 0,
-    flipX: false,
-    flipY: false,
+    // flipX: false,
+    // flipY: false,
     // translateX: 0,
     // translateY: 0,
   };
+
+  get transform(): {
+    x: number;
+    y: number;
+    rotation: number;
+    scaleX: number;
+    scaleY: number;
+    skewX: number;
+    skewY: number;
+  } {
+    if (!this.useDecompose) {
+      const r = this._transform as any;
+
+      r.x = this.matrix.tx;
+      r.y = this.matrix.ty;
+
+      return r;
+    }
+
+    const transform = this.decompose();
+
+    return {
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      skewX: 0,
+      skewY: 0,
+      ...transform,
+    };
+  }
+
+  set transform(value) {
+    this._transform = value;
+  }
 
   width = DEFAULT_WIDTH;
   height = DEFAULT_HEIGHT;
@@ -41,6 +113,8 @@ export class ViewBox {
     this.options = options;
     this.width = options.width ?? DEFAULT_WIDTH;
     this.height = options.height ?? DEFAULT_HEIGHT;
+
+    this.useDecompose = options.useDecompose ?? false;
 
     this.transformOrigin = options.transformOrigin || this.transformOrigin;
 
@@ -101,6 +175,10 @@ export class ViewBox {
    */
   set zoom(value: number) {
     this.setZoom(value);
+  }
+
+  protected setMatrix(mtx: Matrix2D) {
+    this.matrix = mtx;
   }
 
   getMatrix() {
@@ -196,7 +274,7 @@ export class ViewBox {
 
     this.matrix.scale(-1, 1, local.x, local.y);
 
-    this.transform.flipX = !this.transform.flipX;
+    // this.transform.flipX = !this.transform.flipX;
 
     return this;
   }
@@ -212,7 +290,7 @@ export class ViewBox {
 
     this.matrix.scale(1, -1, local.x, local.y);
 
-    this.transform.flipY = !this.transform.flipY;
+    // this.transform.flipY = !this.transform.flipY;
 
     return this;
   }
@@ -282,11 +360,51 @@ export class ViewBox {
   setRotation(rotation: number, cx?: number, cy?: number) {
     const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
 
-    const c = this.transform;
+    const delta = rotation - this.transform.rotation;
 
-    this.matrix.rotate(rotation - c.rotation, local.x, local.y);
+    this.matrix.rotate(delta, local.x, local.y);
 
     this.transform.rotation = rotation;
+
+    return this;
+  }
+
+  /**
+   * 斜切x，可能会无法还原，慎用
+   * @param value
+   */
+  setSkewX(value: number): ViewBox;
+  setSkewX(value: number, cx: number, cy: number): ViewBox;
+  setSkewX(value: number, cx?: number, cy?: number): ViewBox {
+    if (this.useDecompose) {
+      console.warn("[ViewBox] useDecompose is enabled! please use skewX() instead！");
+    }
+
+    const delta = value - this.transform.skewX;
+
+    this.skewX(delta, cx, cy);
+
+    this.transform.skewX = value;
+
+    return this;
+  }
+
+  /**
+   * 斜切y，可能会无法还原，慎用
+   * @param value
+   */
+  setSkewY(value: number): ViewBox;
+  setSkewY(value: number, cx: number, cy: number): ViewBox;
+  setSkewY(value: number, cx?: number, cy?: number): ViewBox {
+    if (this.useDecompose) {
+      console.warn("[ViewBox] useDecompose is enabled! please use skewY() instead！");
+    }
+
+    const delta = value - this.transform.skewY;
+
+    this.skewY(delta, cx, cy);
+
+    this.transform.skewY = value;
 
     return this;
   }
@@ -345,14 +463,13 @@ export class ViewBox {
     this.matrix = new Matrix2D();
 
     this.transform = {
-      scale: 1,
+      x: 0,
+      y: 0,
       rotation: 0,
       scaleX: 1,
       scaleY: 1,
       skewX: 0,
       skewY: 0,
-      flipX: false,
-      flipY: false,
     };
 
     return this;
@@ -361,5 +478,39 @@ export class ViewBox {
   toCSS() {
     const mtx = this.getMatrix();
     return `matrix(${mtx.a},${mtx.b},${mtx.c},${mtx.d},${mtx.tx},${mtx.ty})`;
+  }
+
+  clone() {
+    const viewBox = new ViewBox({
+      width: this.width,
+      height: this.height,
+      transformOrigin: this.transformOrigin,
+      useDecompose: this.useDecompose,
+    });
+
+    viewBox.transform = {
+      ...this.transform,
+    };
+
+    viewBox.matrix = this.getMatrix();
+
+    return viewBox;
+  }
+
+  toJSON(): ViewBoxJSON {
+    const { a, b, c, d, tx, ty } = this.matrix;
+
+    return {
+      options: {
+        width: this.width,
+        height: this.height,
+        transformOrigin: this.transformOrigin,
+        useDecompose: this.useDecompose,
+      },
+      matrix: [a, b, c, d, tx, ty] as [number, number, number, number, number, number],
+      transform: {
+        ...this.transform,
+      },
+    };
   }
 }
