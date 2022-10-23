@@ -25,11 +25,11 @@ export class ViewBox {
   protected transformOrigin: IPoint = { x: 0, y: 0 };
   protected useDecompose = true;
 
-  protected get matrix() {
+  get matrix() {
     return this._matrix;
   }
 
-  protected set matrix(mtx: Matrix2D) {
+  set matrix(mtx: Matrix2D) {
     this._matrix = mtx;
   }
 
@@ -386,9 +386,8 @@ export class ViewBox {
   clone() {
     const viewBox = new ViewBox({
       transformOrigin: this.transformOrigin,
+      matrix: this.getMatrix(),
     });
-
-    viewBox.setMatrix(this.getMatrix());
 
     return viewBox;
   }
