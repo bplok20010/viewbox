@@ -2,54 +2,78 @@ import { Matrix2D } from "matrix2d.js";
 
 import type { IPoint, IRect } from "./types";
 
+export interface Transform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+  flipX: boolean;
+  flipY: boolean;
+}
+
 export interface IViewBoxOptions {
-  matrix?: [number, number, number, number, number, number];
+  transform?: Transform;
   transformOrigin?: IPoint;
 }
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 400;
 
-export interface ViewBoxJSON {
-  options: {
-    transformOrigin: IPoint;
-  };
-  matrix: [number, number, number, number, number, number];
-}
 /**
  * ViewBox
  */
 export class ViewBox {
   protected options: IViewBoxOptions;
   protected _matrix = new Matrix2D();
+  protected _transform: Transform = {
+    x: 0,
+    y: 0,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
+    flipX: false,
+    flipY: false,
+  };
   protected transformOrigin: IPoint = { x: 0, y: 0 };
-  protected useDecompose = true;
 
-  get matrix() {
+  protected get matrix() {
     return this._matrix;
   }
 
-  set matrix(mtx: Matrix2D) {
+  protected set matrix(mtx: Matrix2D) {
     this._matrix = mtx;
   }
 
-  get transform(): {
-    x: number;
-    y: number;
-    rotation: number;
-    scaleX: number;
-    scaleY: number;
-  } {
-    return this.decompose();
+  get transform(): Transform {
+    this._transform.x = this.x;
+    this._transform.y = this.y;
+
+    return this._transform;
+    // return this.decompose();
+  }
+
+  set transform(value: Partial<Transform>) {
+    this._transform = {
+      ...this._transform,
+      ...value,
+    };
   }
 
   constructor(options: IViewBoxOptions = {}) {
     this.options = options;
 
     this.transformOrigin = options.transformOrigin || this.transformOrigin;
-    if (options.matrix) {
-      const mtx = new Matrix2D(...options.matrix);
-      this.matrix = mtx;
+    if (options.transform) {
+      this._transform = {
+        ...this._transform,
+        ...options.transform,
+      };
+
+      this.refreshMatrix();
+
+      this.x = options.transform.x;
+      this.y = options.transform.y;
     }
   }
 
@@ -97,6 +121,21 @@ export class ViewBox {
     this.translate(0, delta);
   }
 
+  protected refreshMatrix() {
+    const { x, y, rotation, scaleX, scaleY, flipX, flipY } = this.transform;
+
+    const matrix = new Matrix2D();
+
+    matrix.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+    matrix.scale(scaleX, scaleY);
+    matrix.rotate(rotation);
+
+    this.matrix = matrix;
+
+    this.x = x;
+    this.y = y;
+  }
+
   getPosition() {
     return {
       x: this.x,
@@ -111,10 +150,16 @@ export class ViewBox {
     return this;
   }
 
-  setMatrix(matrix: [a: number, b: number, c: number, d: number, tx: number, ty: number]) {
-    this.matrix = new Matrix2D(...matrix);
+  getTransform() {
+    return {
+      ...this.transform,
+      x: this.x,
+      y: this.y,
+    };
+  }
 
-    return this;
+  getMatrixObject() {
+    return this.matrix.clone();
   }
 
   getMatrix(): [a: number, b: number, c: number, d: number, tx: number, ty: number] {
@@ -129,7 +174,7 @@ export class ViewBox {
    * viewBox.globalToLocal(0, 0) // {x: -100, y: -100}
    */
   globalToLocal(x: number, y: number) {
-    return this.matrix.clone().invert().transformPoint(x, y);
+    return this.getMatrixObject().invert().transformPoint(x, y);
   }
 
   /**
@@ -178,6 +223,9 @@ export class ViewBox {
 
     this.matrix.scale(scaleX, scaleY, local.x, local.y);
 
+    this.transform.scaleX += scaleX;
+    this.transform.scaleY += scaleY;
+
     return this;
   }
 
@@ -191,6 +239,7 @@ export class ViewBox {
     const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
 
     this.matrix.rotate(rotation, local.x, local.y);
+    this.transform.rotation += rotation;
 
     return this;
   }
@@ -204,20 +253,21 @@ export class ViewBox {
   flipX(cx?: number, cy?: number) {
     cx = cx ?? this.cx;
     cy = cy ?? this.cy;
-    const local = this.globalToLocal(cx, cy);
+    // const local = this.globalToLocal(cx, cy);
 
     const originX = this.x;
 
     const vx = -(originX - cx);
 
-    const mtx = new Matrix2D();
+    // const mtx = new Matrix2D();
 
-    mtx.scale(-1, 1, local.x, local.y);
+    // mtx.scale(-1, 1, local.x, local.y);
 
-    this.matrix.prependMatrix(mtx);
+    // this.matrix.prependMatrix(mtx);
+    this.transform.flipX = !this.transform.flipX;
+    this.refreshMatrix();
 
-    // 重置x
-    // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
+    // FIX: 反复翻转导致精度丢失的显示异常问题
     this.x = cx + vx;
 
     return this;
@@ -232,20 +282,21 @@ export class ViewBox {
   flipY(cx?: number, cy?: number) {
     cx = cx ?? this.cx;
     cy = cy ?? this.cy;
-    const local = this.globalToLocal(cx, cy);
+    // const local = this.globalToLocal(cx, cy);
 
     const originY = this.y;
 
     const vy = -(originY - cy);
 
-    const mtx = new Matrix2D();
+    // const mtx = new Matrix2D();
 
-    mtx.scale(1, -1, local.x, local.y);
+    // mtx.scale(1, -1, local.x, local.y);
 
-    this.matrix.prependMatrix(mtx);
+    // this.matrix.prependMatrix(mtx);
+    this.transform.flipY = !this.transform.flipY;
+    this.refreshMatrix();
 
-    // 重置y
-    // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
+    // FIX: 反复翻转导致精度丢失的显示异常问题
     this.y = cy + vy;
 
     return this;
@@ -297,7 +348,19 @@ export class ViewBox {
     const scaleX = this.transform.scaleX;
     const scaleY = this.transform.scaleY;
 
-    this.scale(value / scaleX, value / scaleY, cx, cy);
+    cx = cx ?? this.cx;
+    cy = cy ?? this.cy;
+
+    const deltaX = this.x - cx;
+    const deltaY = this.y - cy;
+
+    this.transform.scaleX = value;
+    this.transform.scaleY = value;
+
+    this.refreshMatrix();
+
+    this.x = cx + deltaX * (value / scaleX);
+    this.y = cy + deltaY * (value / scaleY);
 
     return this;
   }
@@ -387,8 +450,8 @@ export class ViewBox {
 
   clone() {
     const viewBox = new ViewBox({
-      transformOrigin: this.transformOrigin,
-      matrix: this.getMatrix(),
+      transformOrigin: this.getTransformOrigin(),
+      transform: this.getTransform(),
     });
 
     return viewBox;
