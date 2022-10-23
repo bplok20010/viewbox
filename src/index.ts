@@ -13,7 +13,7 @@ export interface Transform {
 }
 
 export interface IViewBoxOptions {
-  transform?: Transform;
+  transform?: Partial<Transform>;
   transformOrigin?: IPoint;
 }
 
@@ -45,7 +45,7 @@ export class ViewBox {
     this._matrix = mtx;
   }
 
-  get transform(): Transform {
+  protected get transform(): Transform {
     this._transform.x = this.x;
     this._transform.y = this.y;
 
@@ -53,7 +53,7 @@ export class ViewBox {
     // return this.decompose();
   }
 
-  set transform(value: Partial<Transform>) {
+  protected set transform(value: Partial<Transform>) {
     this._transform = {
       ...this._transform,
       ...value,
@@ -65,15 +65,7 @@ export class ViewBox {
 
     this.transformOrigin = options.transformOrigin || this.transformOrigin;
     if (options.transform) {
-      this._transform = {
-        ...this._transform,
-        ...options.transform,
-      };
-
-      this.refreshMatrix();
-
-      this.x = options.transform.x;
-      this.y = options.transform.y;
+      this.setTransform(options.transform);
     }
   }
 
@@ -156,6 +148,23 @@ export class ViewBox {
       x: this.x,
       y: this.y,
     };
+  }
+
+  setTransform(transform: Partial<Transform>) {
+    const x = transform.x ?? this.x;
+    const y = transform.y ?? this.y;
+
+    this.transform = {
+      ...this.transform,
+      ...transform,
+    };
+
+    this.refreshMatrix();
+
+    this.x = x;
+    this.y = y;
+
+    return this;
   }
 
   getMatrixObject() {
