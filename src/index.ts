@@ -3,15 +3,8 @@ import { Matrix2D } from "matrix2d.js";
 import type { IPoint, IRect } from "./types";
 
 export interface IViewBoxOptions {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
+  matrix?: [number, number, number, number, number, number];
   transformOrigin?: IPoint;
-  /**
-   * 是否记录旋转、缩放等信息，否则使用decompose获取，不建议开启
-   */
-  useDecompose?: boolean;
 }
 
 const DEFAULT_WIDTH = 400;
@@ -19,58 +12,26 @@ const DEFAULT_HEIGHT = 400;
 
 export interface ViewBoxJSON {
   options: {
-    width: number;
-    height: number;
     transformOrigin: IPoint;
-    useDecompose: boolean;
   };
   matrix: [number, number, number, number, number, number];
-  transform: {
-    x: number;
-    y: number;
-    rotation: number;
-    scaleX: number;
-    scaleY: number;
-    skewX: number;
-    skewY: number;
-  };
 }
 /**
  * ViewBox
  */
 export class ViewBox {
-  static formJSON({ options, matrix, transform }: ViewBoxJSON) {
-    const mtx = new Matrix2D(...matrix);
+  protected options: IViewBoxOptions;
+  protected _matrix = new Matrix2D();
+  protected transformOrigin: IPoint = { x: 0, y: 0 };
+  protected useDecompose = true;
 
-    const viewBox = new ViewBox(options);
-
-    viewBox.setMatrix(mtx);
-
-    viewBox.transform = {
-      ...transform,
-    };
-
-    return viewBox;
+  protected get matrix() {
+    return this._matrix;
   }
 
-  protected options: IViewBoxOptions;
-  protected matrix = new Matrix2D();
-  protected transformOrigin: IPoint = { x: 0, y: 0 };
-  protected useDecompose = false;
-
-  protected _transform = {
-    x: 0,
-    y: 0,
-    rotation: 0,
-    scaleX: 1,
-    scaleY: 1,
-    skewX: 0,
-    skewY: 0,
-    flipX: false,
-    flipY: false,
-    // translateX: 0,
-    // translateY: 0,
-  };
+  protected set matrix(mtx: Matrix2D) {
+    this._matrix = mtx;
+  }
 
   get transform(): {
     x: number;
@@ -78,52 +39,18 @@ export class ViewBox {
     rotation: number;
     scaleX: number;
     scaleY: number;
-    skewX: number;
-    skewY: number;
-    flipX: boolean;
-    flipY: boolean;
   } {
-    if (!this.useDecompose) {
-      const r = this._transform as any;
-
-      r.x = this.matrix.tx;
-      r.y = this.matrix.ty;
-
-      return r;
-    }
-
-    const transform = this.decompose();
-
-    return {
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      skewX: 0,
-      skewY: 0,
-      flipX: false,
-      flipY: false,
-      ...transform,
-    };
+    return this.decompose();
   }
-
-  set transform(value) {
-    this._transform = value;
-  }
-
-  width = DEFAULT_WIDTH;
-  height = DEFAULT_HEIGHT;
 
   constructor(options: IViewBoxOptions = {}) {
     this.options = options;
-    this.width = options.width ?? DEFAULT_WIDTH;
-    this.height = options.height ?? DEFAULT_HEIGHT;
-
-    this.useDecompose = options.useDecompose ?? false;
 
     this.transformOrigin = options.transformOrigin || this.transformOrigin;
-
-    this.x = options.x ?? 0;
-    this.y = options.y ?? 0;
+    if (options.matrix) {
+      const mtx = new Matrix2D(...options.matrix);
+      this.matrix = mtx;
+    }
   }
 
   protected decompose() {
@@ -170,23 +97,27 @@ export class ViewBox {
     this.translate(0, delta);
   }
 
-  get zoom() {
-    return this.transform.scaleX;
+  getPosition() {
+    return {
+      x: this.x,
+      y: this.y,
+    };
   }
 
-  /**
-   * scale based on center point
-   */
-  set zoom(value: number) {
-    this.setZoom(value);
+  setPosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+
+    return this;
   }
 
-  protected setMatrix(mtx: Matrix2D) {
-    this.matrix = mtx;
+  setMatrix(matrix: [a: number, b: number, c: number, d: number, tx: number, ty: number]) {
+    this.matrix = new Matrix2D(...matrix);
   }
 
-  getMatrix() {
-    return this.matrix.clone();
+  getMatrix(): [a: number, b: number, c: number, d: number, tx: number, ty: number] {
+    const { a, b, c, d, tx, ty } = this.matrix;
+    return [a, b, c, d, tx, ty];
   }
 
   /**
@@ -196,7 +127,7 @@ export class ViewBox {
    * viewBox.globalToLocal(0, 0) // {x: -100, y: -100}
    */
   globalToLocal(x: number, y: number) {
-    return this.getMatrix().invert().transformPoint(x, y);
+    return this.matrix.clone().invert().transformPoint(x, y);
   }
 
   /**
@@ -245,9 +176,6 @@ export class ViewBox {
 
     this.matrix.scale(scaleX, scaleY, local.x, local.y);
 
-    this.transform.scaleX += scaleX;
-    this.transform.scaleY += scaleY;
-
     return this;
   }
 
@@ -261,8 +189,6 @@ export class ViewBox {
     const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
 
     this.matrix.rotate(rotation, local.x, local.y);
-
-    this.transform.rotation += rotation;
 
     return this;
   }
@@ -292,8 +218,6 @@ export class ViewBox {
     // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
     this.x = cx + vx;
 
-    this.transform.flipX = !this.transform.flipX;
-
     return this;
   }
 
@@ -322,8 +246,6 @@ export class ViewBox {
     // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
     this.y = cy + vy;
 
-    this.transform.flipY = !this.transform.flipY;
-
     return this;
   }
 
@@ -336,7 +258,7 @@ export class ViewBox {
     this.matrix.skewX(value);
     this.matrix.translate(-local.x, -local.y);
 
-    this.transform.skewX += value;
+    // this.transform.skewX += value;
 
     return this;
   }
@@ -350,7 +272,7 @@ export class ViewBox {
     this.matrix.skewY(value);
     this.matrix.translate(-local.x, -local.y);
 
-    this.transform.skewY += value;
+    // this.transform.skewY += value;
 
     return this;
   }
@@ -360,7 +282,7 @@ export class ViewBox {
    * @returns
    */
   getZoom() {
-    return this.zoom;
+    return this.transform.scaleX;
   }
 
   /**
@@ -373,14 +295,7 @@ export class ViewBox {
     const scaleX = this.transform.scaleX;
     const scaleY = this.transform.scaleY;
 
-    // const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
-
-    // this.matrix.scale(value / scaleX, value / scaleY, local.x, local.y);
-
     this.scale(value / scaleX, value / scaleY, cx, cy);
-
-    this.transform.scaleX = value;
-    this.transform.scaleY = value;
 
     return this;
   }
@@ -396,48 +311,6 @@ export class ViewBox {
 
     this.rotate(delta, cx, cy);
 
-    this.transform.rotation = rotation;
-
-    return this;
-  }
-
-  /**
-   * 斜切x，可能会无法还原，慎用
-   * @param value
-   */
-  setSkewX(value: number): ViewBox;
-  setSkewX(value: number, cx: number, cy: number): ViewBox;
-  setSkewX(value: number, cx?: number, cy?: number): ViewBox {
-    if (this.useDecompose) {
-      console.warn("[ViewBox] useDecompose is enabled! please use skewX() instead！");
-    }
-
-    const delta = value - this.transform.skewX;
-
-    this.skewX(delta, cx, cy);
-
-    this.transform.skewX = value;
-
-    return this;
-  }
-
-  /**
-   * 斜切y，可能会无法还原，慎用
-   * @param value
-   */
-  setSkewY(value: number): ViewBox;
-  setSkewY(value: number, cx: number, cy: number): ViewBox;
-  setSkewY(value: number, cx?: number, cy?: number): ViewBox {
-    if (this.useDecompose) {
-      console.warn("[ViewBox] useDecompose is enabled! please use skewY() instead！");
-    }
-
-    const delta = value - this.transform.skewY;
-
-    this.skewY(delta, cx, cy);
-
-    this.transform.skewY = value;
-
     return this;
   }
 
@@ -448,6 +321,10 @@ export class ViewBox {
   zoomToRect(
     rect: IRect,
     options: {
+      size?: {
+        width: number;
+        height: number;
+      };
       /**
        * 自定义缩放值
        */
@@ -462,10 +339,14 @@ export class ViewBox {
       transformOrigin?: IPoint;
     } = {}
   ) {
+    const size = options?.size || {
+      width: DEFAULT_WIDTH,
+      height: DEFAULT_HEIGHT,
+    };
     const padding = options.padding ?? 0;
 
-    const vWidth = this.width - padding * 2;
-    const vHeight = this.height - padding * 2;
+    const vWidth = size.width - padding * 2;
+    const vHeight = size.height - padding * 2;
 
     const scale = options.scale ?? Math.min(vWidth / rect.width, vHeight / rect.height);
 
@@ -494,55 +375,21 @@ export class ViewBox {
   reset() {
     this.matrix = new Matrix2D();
 
-    this.transform = {
-      x: 0,
-      y: 0,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      skewX: 0,
-      skewY: 0,
-    };
-
     return this;
   }
 
   toCSS() {
     const mtx = this.getMatrix();
-    return `matrix(${mtx.a},${mtx.b},${mtx.c},${mtx.d},${mtx.tx},${mtx.ty})`;
+    return `matrix(${mtx.join(",")})`;
   }
 
   clone() {
     const viewBox = new ViewBox({
-      width: this.width,
-      height: this.height,
       transformOrigin: this.transformOrigin,
-      useDecompose: this.useDecompose,
     });
 
-    viewBox.transform = {
-      ...this.transform,
-    };
-
-    viewBox.matrix = this.getMatrix();
+    viewBox.setMatrix(this.getMatrix());
 
     return viewBox;
-  }
-
-  toJSON(): ViewBoxJSON {
-    const { a, b, c, d, tx, ty } = this.matrix;
-
-    return {
-      options: {
-        width: this.width,
-        height: this.height,
-        transformOrigin: this.transformOrigin,
-        useDecompose: this.useDecompose,
-      },
-      matrix: [a, b, c, d, tx, ty] as [number, number, number, number, number, number],
-      transform: {
-        ...this.transform,
-      },
-    };
   }
 }
