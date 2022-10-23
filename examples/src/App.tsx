@@ -52,8 +52,8 @@ export default function App() {
       updateMatrix(viewBox.toCSS());
     };
 
-    // window.viewBox = viewBox;
-    // window.update = update;
+    window.viewBox = viewBox;
+    window.update = update;
 
     var gui = new dat.gui.GUI();
 

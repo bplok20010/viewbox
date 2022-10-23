@@ -24,7 +24,7 @@ viewBox.flipX();
 viewBox.translate(200, 200);
 
 console.log(viewBox.toCSS());
-console.log(viewBox.getMatrix());
+console.log(viewBox.getTransform());
 ```
 
 ## types
@@ -32,15 +32,18 @@ console.log(viewBox.getMatrix());
 ```ts
 import { Matrix2D } from "matrix2d.js";
 import type { IPoint, IRect } from "./types";
-export interface IViewBoxOptions {
-  matrix?: [number, number, number, number, number, number];
-  transformOrigin?: IPoint;
+export interface Transform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+  flipX: boolean;
+  flipY: boolean;
 }
-export interface ViewBoxJSON {
-  options: {
-    transformOrigin: IPoint;
-  };
-  matrix: [number, number, number, number, number, number];
+export interface IViewBoxOptions {
+  transform?: Partial<Transform>;
+  transformOrigin?: IPoint;
 }
 /**
  * ViewBox
@@ -48,17 +51,12 @@ export interface ViewBoxJSON {
 export declare class ViewBox {
   protected options: IViewBoxOptions;
   protected _matrix: Matrix2D;
+  protected _transform: Transform;
   protected transformOrigin: IPoint;
-  protected useDecompose: boolean;
-  get matrix(): Matrix2D;
-  set matrix(mtx: Matrix2D);
-  get transform(): {
-    x: number;
-    y: number;
-    rotation: number;
-    scaleX: number;
-    scaleY: number;
-  };
+  protected get matrix(): Matrix2D;
+  protected set matrix(mtx: Matrix2D);
+  protected get transform(): Transform;
+  protected set transform(value: Partial<Transform>);
   constructor(options?: IViewBoxOptions);
   protected decompose(): import("matrix2d.js").Transform;
   protected get cx(): number;
@@ -72,12 +70,23 @@ export declare class ViewBox {
   set x(value: number);
   get y(): number;
   set y(value: number);
+  protected refreshMatrix(): void;
   getPosition(): {
     x: number;
     y: number;
   };
   setPosition(x: number, y: number): this;
-  setMatrix(matrix: [a: number, b: number, c: number, d: number, tx: number, ty: number]): this;
+  getTransform(): {
+    x: number;
+    y: number;
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+    flipX: boolean;
+    flipY: boolean;
+  };
+  setTransform(transform: Partial<Transform>): this;
+  getMatrixObject(): Matrix2D;
   getMatrix(): [a: number, b: number, c: number, d: number, tx: number, ty: number];
   /**
    * 绝对坐标(相对viewBox)转本地坐标(viewBox内容实际坐标)
@@ -128,6 +137,10 @@ export declare class ViewBox {
    */
   flipY(): ViewBox;
   flipY(cx: number, cy: number): ViewBox;
+  // skewX(value: number): ViewBox;
+  // skewX(value: number, cx: number, cy: number): ViewBox;
+  // skewY(value: number): ViewBox;
+  // skewY(value: number, cx: number, cy: number): ViewBox;
   /**
    * 获取当前缩放值
    * @returns
