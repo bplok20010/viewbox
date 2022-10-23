@@ -50,7 +50,7 @@ export class ViewBox {
 
     viewBox.transform = {
       ...transform,
-    };
+    } as any;
 
     return viewBox;
   }
@@ -682,7 +682,7 @@ export class ViewBox {
       scaleY: 1,
       skewX: 0,
       skewY: 0,
-    };
+    } as any;
 
     return this;
   }
