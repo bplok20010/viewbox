@@ -44,15 +44,16 @@ export default function App() {
     };
 
     const viewBox = new ViewBox({
-      width: vw,
-      height: vh,
       transformOrigin: center,
-      useDecompose: false,
     });
 
     const update = () => {
+      console.log(viewBox.toCSS());
       updateMatrix(viewBox.toCSS());
     };
+
+    // window.viewBox = viewBox;
+    // window.update = update;
 
     var gui = new dat.gui.GUI();
 
@@ -85,17 +86,17 @@ export default function App() {
       update();
     });
 
-    gui.add(setting, "skewX", -90, 90, 1).onChange((value: number) => {
-      viewBox.setSkewX(value, setting.cx, setting.cy);
+    // gui.add(setting, "skewX", -45, 45, 1).onChange((value: number) => {
+    //   viewBox.setSkewX(value, setting.cx, setting.cy);
 
-      update();
-    });
+    //   update();
+    // });
 
-    gui.add(setting, "skewY", -90, 90, 1).onChange((value: number) => {
-      viewBox.setSkewY(value, setting.cx, setting.cy);
+    // gui.add(setting, "skewY", -45, 45, 1).onChange((value: number) => {
+    //   viewBox.setSkewY(value, setting.cx, setting.cy);
 
-      update();
-    });
+    //   update();
+    // });
 
     gui.add(setting, "flipX").onChange(() => {
       viewBox.flipX(setting.cx, setting.cy);
