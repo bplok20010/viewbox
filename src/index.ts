@@ -113,6 +113,8 @@ export class ViewBox {
 
   setMatrix(matrix: [a: number, b: number, c: number, d: number, tx: number, ty: number]) {
     this.matrix = new Matrix2D(...matrix);
+
+    return this;
   }
 
   getMatrix(): [a: number, b: number, c: number, d: number, tx: number, ty: number] {
