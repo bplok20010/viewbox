@@ -66,8 +66,8 @@ export class ViewBox {
     scaleY: 1,
     skewX: 0,
     skewY: 0,
-    // flipX: false,
-    // flipY: false,
+    flipX: false,
+    flipY: false,
     // translateX: 0,
     // translateY: 0,
   };
@@ -80,6 +80,8 @@ export class ViewBox {
     scaleY: number;
     skewX: number;
     skewY: number;
+    flipX: boolean;
+    flipY: boolean;
   } {
     if (!this.useDecompose) {
       const r = this._transform as any;
@@ -98,6 +100,8 @@ export class ViewBox {
       scaleY: 1,
       skewX: 0,
       skewY: 0,
+      flipX: false,
+      flipY: false,
       ...transform,
     };
   }
@@ -270,11 +274,25 @@ export class ViewBox {
   flipX(): ViewBox;
   flipX(cx: number, cy: number): ViewBox;
   flipX(cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    cx = cx ?? this.cx;
+    cy = cy ?? this.cy;
+    const local = this.globalToLocal(cx, cy);
 
-    this.matrix.scale(-1, 1, local.x, local.y);
+    const originX = this.x;
 
-    // this.transform.flipX = !this.transform.flipX;
+    const vx = -(originX - cx);
+
+    const mtx = new Matrix2D();
+
+    mtx.scale(-1, 1, local.x, local.y);
+
+    this.matrix.prependMatrix(mtx);
+
+    // 重置x
+    // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
+    this.x = cx + vx;
+
+    this.transform.flipX = !this.transform.flipX;
 
     return this;
   }
@@ -286,11 +304,25 @@ export class ViewBox {
   flipY(): ViewBox;
   flipY(cx: number, cy: number): ViewBox;
   flipY(cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    cx = cx ?? this.cx;
+    cy = cy ?? this.cy;
+    const local = this.globalToLocal(cx, cy);
 
-    this.matrix.scale(1, -1, local.x, local.y);
+    const originY = this.y;
 
-    // this.transform.flipY = !this.transform.flipY;
+    const vy = -(originY - cy);
+
+    const mtx = new Matrix2D();
+
+    mtx.scale(1, -1, local.x, local.y);
+
+    this.matrix.prependMatrix(mtx);
+
+    // 重置y
+    // FIX: 修复在旋转及缩放如0.5倍的情况下，反复翻转导致精度丢失的显示异常问题
+    this.y = cy + vy;
+
+    this.transform.flipY = !this.transform.flipY;
 
     return this;
   }
@@ -341,9 +373,11 @@ export class ViewBox {
     const scaleX = this.transform.scaleX;
     const scaleY = this.transform.scaleY;
 
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    // const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
 
-    this.matrix.scale(value / scaleX, value / scaleY, local.x, local.y);
+    // this.matrix.scale(value / scaleX, value / scaleY, local.x, local.y);
+
+    this.scale(value / scaleX, value / scaleY, cx, cy);
 
     this.transform.scaleX = value;
     this.transform.scaleY = value;
@@ -358,11 +392,9 @@ export class ViewBox {
   setRotation(rotation: number): ViewBox;
   setRotation(rotation: number, cx: number, cy: number): ViewBox;
   setRotation(rotation: number, cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
-
     const delta = rotation - this.transform.rotation;
 
-    this.matrix.rotate(delta, local.x, local.y);
+    this.rotate(delta, cx, cy);
 
     this.transform.rotation = rotation;
 
