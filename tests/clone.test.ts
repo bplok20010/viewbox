@@ -31,7 +31,7 @@ describe("ViewBox", () => {
 
     viewBox.setZoom(2);
 
-    expect([viewBox.x, viewBox.y]).toEqual([-200, -200]);
+    expect([viewBox.clone().x, viewBox.clone().y]).toEqual([-200, -200]);
   });
 
   it("zoom 2 to 4 - 1", () => {
@@ -46,9 +46,9 @@ describe("ViewBox", () => {
 
     viewBox.setZoom(4);
 
-    const mtx = viewBox.getMatrixObject();
+    const mtx = viewBox.clone().getMatrixObject();
 
-    expect([viewBox.x, viewBox.y]).toEqual([-600, -600]);
+    expect([viewBox.clone().x, viewBox.clone().y]).toEqual([-600, -600]);
   });
 
   it("zoom 2 to 4 - 2", () => {
@@ -63,7 +63,7 @@ describe("ViewBox", () => {
 
     viewBox.setZoom(4);
 
-    expect([viewBox.x, viewBox.y]).toEqual([-200, -200]);
+    expect([viewBox.clone().x, viewBox.clone().y]).toEqual([-200, -200]);
   });
 
   it("rotate-scale", () => {
@@ -77,7 +77,7 @@ describe("ViewBox", () => {
     viewBox.rotate(30);
     viewBox.setZoom(2);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 1.7320508075688774,
         b: 0.9999999999999999,
@@ -130,7 +130,7 @@ describe("ViewBox", () => {
       viewBox.flipX();
     }
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: 0.2347357813929454,
@@ -158,7 +158,7 @@ describe("ViewBox", () => {
       viewBox.flipY();
     }
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.4414737964294635,
         b: -0.2347357813929454,
@@ -183,7 +183,7 @@ describe("ViewBox", () => {
     viewBox.flipX();
     viewBox.flipY();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: -0.2347357813929454,
@@ -213,7 +213,7 @@ describe("ViewBox", () => {
       viewBox.flipX();
     }
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: -0.2347357813929454,
@@ -237,7 +237,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipX();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: 0.2347357813929454,
@@ -260,7 +260,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipX();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: 0.2347357813929454,
@@ -284,7 +284,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipX();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: -0.4414737964294635,
         b: 0.2347357813929454,
@@ -308,7 +308,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipY();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.4414737964294635,
         b: -0.2347357813929454,
@@ -332,7 +332,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipY();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.4414737964294635,
         b: -0.2347357813929454,
@@ -356,7 +356,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.flipY();
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.4414737964294635,
         b: -0.2347357813929454,
@@ -379,7 +379,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(2);
     viewBox.rotate(30);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 1.7320508075688774,
         b: 0.9999999999999999,
@@ -405,7 +405,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(0.5);
     viewBox.rotate(10);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.38302222155948906,
         b: 0.3213938048432696,
@@ -429,7 +429,7 @@ describe("ViewBox", () => {
     viewBox.setZoom(2);
     viewBox.rotate(30);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 1.7320508075688774,
         b: 0.9999999999999999,
@@ -453,7 +453,7 @@ describe("ViewBox", () => {
     viewBox.rotate(30);
     viewBox.setZoom(0.5);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 0.43301270189221935,
         b: 0.24999999999999997,
@@ -484,7 +484,7 @@ describe("ViewBox", () => {
       height: 80,
     });
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 4.330127018922194,
         b: 2.4999999999999996,
@@ -511,7 +511,7 @@ describe("ViewBox", () => {
       height: 80,
     });
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual(
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual(
       fixedObject({
         a: 5,
         b: 0,
@@ -540,7 +540,7 @@ describe("ViewBox", () => {
 
     viewBox.setZoom(1);
 
-    expect(toArray(viewBox.getMatrixObject())).toEqual({
+    expect(toArray(viewBox.clone().getMatrixObject())).toEqual({
       a: "-0.121869",
       b: "0.992546",
       c: "-0.992546",
