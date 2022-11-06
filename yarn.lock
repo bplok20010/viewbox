@@ -2980,10 +2980,10 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-matrix2d.js@^0.4.0:
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/matrix2d.js/-/matrix2d.js-0.4.0.tgz#ba6905fe2d2e05cbd832ffbb4c94a4102a530a64"
-  integrity sha512-GMJ3jaVjEM9YvAbyQdPnUkPBA92wycEOBdt8akSnzVu5tgdmPlAB+Htc4o65hWs1idC6VHUUHm9iV/RsQEjZhw==
+matrix2d.js@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/matrix2d.js/-/matrix2d.js-0.5.0.tgz#5406297cdf009717ed6d54e13f0bf6afd6962603"
+  integrity sha512-qel95vvjdFTnGas+KlLCoKJU8XrTThAemOJCirkxD1NKDDNXlscEzlnrOwPO446ZTwwhuSCgMdjpZJfTn14osA==
 
 memorystream@^0.3.1:
   version "0.3.1"
