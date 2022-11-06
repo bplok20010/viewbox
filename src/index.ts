@@ -254,7 +254,7 @@ export class ViewBox {
   }
 
   /**
-   * x 轴翻转，多次调用侧反复翻转
+   * x 轴翻转
    * cx,cy均指相对viewBox（绝对坐标）
    */
   flipX(): ViewBox;
@@ -283,7 +283,7 @@ export class ViewBox {
   }
 
   /**
-   * y 轴翻转，多次调用侧反复翻转
+   * y 轴翻转
    * cx,cy均指相对viewBox（绝对坐标）
    */
   flipY(): ViewBox;
@@ -455,6 +455,14 @@ export class ViewBox {
   toCSS() {
     const mtx = this.getMatrix();
     return `matrix(${mtx.join(",")})`;
+  }
+
+  /**
+   * alias toCSS
+   * @returns
+   */
+  toString() {
+    return this.toCSS();
   }
 
   clone() {
