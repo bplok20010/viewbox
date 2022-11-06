@@ -17,6 +17,8 @@
   },
   "keywords": [
     "viewbox",
+    "zoom",
+    "scale",
     "matrix",
     "viewport"
   ],
@@ -24,11 +26,11 @@
     "dist",
     "*.md"
   ],
-  "author": "nobo.zhou@foxmail.com",
+  "author": "bplok20010<nobo.zhou@foxmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/bplok20010/viewbox"
   },
   "devDependencies": {
     "@babel/runtime": "^7.19.4",
