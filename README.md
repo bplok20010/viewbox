@@ -1,5 +1,7 @@
 # ViewBox
 
+一个对视图进行矩阵变换(旋转、缩放、平移、斜切等)的工具类
+
 ## Install
 
 ```sh
@@ -150,10 +152,16 @@ export declare class ViewBox {
   flipY(cx: number, cy: number): ViewBox;
   skewX(value: number): ViewBox;
   skewX(value: number, cx: number, cy: number): ViewBox;
+  /**
+   * 注意：如果有初始矩阵系数尽量不要使用该API
+   */
   setSkewX(value: number): ViewBox;
   setSkewX(value: number, cx: number, cy: number): ViewBox;
   skewY(value: number): ViewBox;
   skewY(value: number, cx: number, cy: number): ViewBox;
+  /**
+   * 注意：如果有初始矩阵系数尽量不要使用该API
+   */
   setSkewY(value: number): ViewBox;
   setSkewY(value: number, cx: number, cy: number): ViewBox;
   /**
@@ -163,12 +171,14 @@ export declare class ViewBox {
   getZoom(): number;
   /**
    * 视图缩放，该缩放值是全量值，多次调用会覆盖上一次，如：setZoom(2) setZoom(4)，实际的缩放值为：4
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param value 缩放值，全量值
    */
   setZoom(value: number): ViewBox;
   setZoom(value: number, cx: number, cy: number): ViewBox;
   /**
    * 视图旋转，该缩放值是全量值，多次调用会覆盖上一次，如：setRotation(10) setZoom(30)，实际的缩放值为：30
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param value 旋转角度，全量值
    */
   setRotation(rotation: number): ViewBox;

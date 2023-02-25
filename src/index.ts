@@ -339,6 +339,7 @@ export class ViewBox {
   }
   /**
    * @param value 全量值
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param cx
    * @param cy
    */
@@ -376,6 +377,7 @@ export class ViewBox {
 
   /**
    * @param value 全量值
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param cx
    * @param cy
    */
@@ -403,7 +405,7 @@ export class ViewBox {
 
   /**
    * 视图缩放，该缩放值是全量值，多次调用会覆盖上一次，如：setZoom(2) setZoom(4)，实际的缩放值为：4
-   * 避免精度问题，建议使用scale
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param value 缩放值，全量值
    */
   setZoom(value: number): ViewBox;
@@ -428,7 +430,7 @@ export class ViewBox {
 
   /**
    * 视图旋转，该缩放值是全量值，多次调用会覆盖上一次，如：setRotation(10) setZoom(30)，实际的缩放值为：30
-   * 避免精度问题，建议使用rotate
+   * 注意：如果有初始矩阵系数尽量不要使用该API
    * @param value 旋转角度，全量值
    */
   setRotation(rotation: number): ViewBox;

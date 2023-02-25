@@ -1,7 +1,7 @@
 {
   "name": "@bplok20010/viewbox",
-  "version": "0.5.0",
-  "description": "",
+  "version": "0.5.1",
+  "description": "a tool class for matrix transformation of views (rotate, scale, translate, skew, etc.)",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/lib/index.d.ts",
@@ -19,7 +19,10 @@
     "viewbox",
     "zoom",
     "scale",
+    "rotate",
     "matrix",
+    "transform",
+    "zoom-to-fit",
     "viewport"
   ],
   "files": [
