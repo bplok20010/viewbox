@@ -3,6 +3,10 @@ import { Matrix2D } from "matrix2d.js";
 import type { IPoint, IRect } from "./types";
 
 export interface Transform {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
   x: number;
   y: number;
   scaleX: number;
@@ -10,6 +14,8 @@ export interface Transform {
   rotation: number;
   flipX: boolean;
   flipY: boolean;
+  skewX: number;
+  skewY: number;
 }
 
 export interface IViewBoxOptions {
@@ -17,16 +23,37 @@ export interface IViewBoxOptions {
   transformOrigin?: IPoint;
 }
 
+export interface IZoomToRectOptions {
+  /**
+   * 视图宽高,默认400x400
+   */
+  size?: {
+    width: number;
+    height: number;
+  };
+  /**
+   * 自定义缩放值
+   */
+  scale?: number;
+  /**
+   * 距离视图的边界距离
+   */
+  padding?: number;
+  /**
+   * 自定义缩放中心坐标
+   */
+  transformOrigin?: IPoint;
+}
+
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 400;
 
-/**
- * ViewBox
- */
-export class ViewBox {
-  protected options: IViewBoxOptions;
-  protected _matrix = new Matrix2D();
-  protected _transform: Transform = {
+function getDefaultTransform(): Transform {
+  return {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
     x: 0,
     y: 0,
     scaleX: 1,
@@ -34,7 +61,18 @@ export class ViewBox {
     rotation: 0,
     flipX: false,
     flipY: false,
+    skewX: 0,
+    skewY: 0,
   };
+}
+
+/**
+ * ViewBox
+ */
+export class ViewBox {
+  protected options: IViewBoxOptions;
+  protected _matrix = new Matrix2D();
+  protected _transform: Transform = getDefaultTransform();
   protected transformOrigin: IPoint = { x: 0, y: 0 };
 
   protected get matrix() {
@@ -113,21 +151,6 @@ export class ViewBox {
     this.translate(0, delta);
   }
 
-  protected refreshMatrix() {
-    const { x, y, rotation, scaleX, scaleY, flipX, flipY } = this.transform;
-
-    const matrix = new Matrix2D();
-
-    matrix.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-    matrix.scale(scaleX, scaleY);
-    matrix.rotate(rotation);
-
-    this.matrix = matrix;
-
-    this.x = x;
-    this.y = y;
-  }
-
   getPosition() {
     return {
       x: this.x,
@@ -143,26 +166,35 @@ export class ViewBox {
   }
 
   getTransform() {
+    const { a, b, c, d, tx, ty } = this.matrix;
     return {
       ...this.transform,
-      x: this.x,
-      y: this.y,
+      a,
+      b,
+      c,
+      d,
+      x: tx,
+      y: ty,
     };
   }
 
   setTransform(transform: Partial<Transform>) {
-    const x = transform.x ?? this.x;
-    const y = transform.y ?? this.y;
+    const { a = 1, b = 0, c = 0, d = 1, x = 0, y = 0 } = transform;
+
+    const matrix = new Matrix2D(a, b, c, d, x, y);
+    const decompose = matrix.decompose();
 
     this.transform = {
-      ...this.transform,
+      ...getDefaultTransform(),
+      scaleX: decompose.scaleX,
+      scaleY: decompose.scaleY,
+      rotation: decompose.rotation,
+      x: decompose.x,
+      y: decompose.y,
       ...transform,
     };
 
-    this.refreshMatrix();
-
-    this.x = x;
-    this.y = y;
+    this.matrix = matrix;
 
     return this;
   }
@@ -203,10 +235,7 @@ export class ViewBox {
    * @returns
    */
   translate(x: number, y: number) {
-    const r1 = this.globalToLocal(0, 0);
-    const r2 = this.globalToLocal(x, y);
-
-    this.matrix.translate(r2.x - r1.x, r2.y - r1.y);
+    this.matrix.prepend(1, 0, 0, 1, x, y);
 
     return this;
   }
@@ -228,12 +257,13 @@ export class ViewBox {
   scale(scaleX: number, scaleY: number): ViewBox;
   scale(scaleX: number, scaleY: number, cx: number, cy: number): ViewBox;
   scale(scaleX: number, scaleY: number, cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    const m0 = new Matrix2D();
+    m0.scale(scaleX, scaleY, cx ?? this.cx, cy ?? this.cy);
 
-    this.matrix.scale(scaleX, scaleY, local.x, local.y);
+    this.matrix.prependMatrix(m0);
 
-    this.transform.scaleX += scaleX;
-    this.transform.scaleY += scaleY;
+    this.transform.scaleX *= scaleX;
+    this.transform.scaleY *= scaleY;
 
     return this;
   }
@@ -245,9 +275,11 @@ export class ViewBox {
   rotate(rotation: number): ViewBox;
   rotate(rotation: number, cx: number, cy: number): ViewBox;
   rotate(rotation: number, cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    const m0 = new Matrix2D();
+    m0.rotate(rotation, cx ?? this.cx, cy ?? this.cy);
 
-    this.matrix.rotate(rotation, local.x, local.y);
+    this.matrix.prependMatrix(m0);
+
     this.transform.rotation += rotation;
 
     return this;
@@ -262,22 +294,13 @@ export class ViewBox {
   flipX(cx?: number, cy?: number) {
     cx = cx ?? this.cx;
     cy = cy ?? this.cy;
-    // const local = this.globalToLocal(cx, cy);
 
-    const originX = this.x;
+    const m0 = new Matrix2D();
+    m0.flipX(cx, cy);
 
-    const vx = -(originX - cx);
+    this.matrix.prependMatrix(m0);
 
-    // const mtx = new Matrix2D();
-
-    // mtx.scale(-1, 1, local.x, local.y);
-
-    // this.matrix.prependMatrix(mtx);
     this.transform.flipX = !this.transform.flipX;
-    this.refreshMatrix();
-
-    // FIX: 反复翻转导致精度丢失的显示异常问题
-    this.x = cx + vx;
 
     return this;
   }
@@ -291,22 +314,13 @@ export class ViewBox {
   flipY(cx?: number, cy?: number) {
     cx = cx ?? this.cx;
     cy = cy ?? this.cy;
-    // const local = this.globalToLocal(cx, cy);
 
-    const originY = this.y;
+    const m0 = new Matrix2D();
+    m0.flipY(cx, cy);
 
-    const vy = -(originY - cy);
+    this.matrix.prependMatrix(m0);
 
-    // const mtx = new Matrix2D();
-
-    // mtx.scale(1, -1, local.x, local.y);
-
-    // this.matrix.prependMatrix(mtx);
-    this.transform.flipY = !this.transform.flipY;
-    this.refreshMatrix();
-
-    // FIX: 反复翻转导致精度丢失的显示异常问题
-    this.y = cy + vy;
+    this.transform.flipX = !this.transform.flipX;
 
     return this;
   }
@@ -314,27 +328,67 @@ export class ViewBox {
   skewX(value: number): ViewBox;
   skewX(value: number, cx: number, cy: number): ViewBox;
   skewX(value: number, cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    const m0 = new Matrix2D();
+    m0.skewX(value, cx ?? this.cx, cy ?? this.cy);
 
-    this.matrix.translate(local.x, local.y);
-    this.matrix.skewX(value);
-    this.matrix.translate(-local.x, -local.y);
+    this.matrix.prependMatrix(m0);
 
-    // this.transform.skewX += value;
+    this.transform.skewX += value;
+
+    return this;
+  }
+  /**
+   * @param value 全量值
+   * @param cx
+   * @param cy
+   */
+  setSkewX(value: number): ViewBox;
+  setSkewX(value: number, cx: number, cy: number): ViewBox;
+  setSkewX(value: number, cx?: number, cy?: number) {
+    const skewX = this.transform.skewX;
+    const m0 = new Matrix2D();
+    m0.skewX(value - skewX, cx ?? this.cx, cy ?? this.cy);
+
+    this.matrix.prependMatrix(m0);
+
+    this.transform.skewX = value;
 
     return this;
   }
 
+  /**
+   * @param value
+   * @param cx
+   * @param cy
+   */
   skewY(value: number): ViewBox;
   skewY(value: number, cx: number, cy: number): ViewBox;
   skewY(value: number, cx?: number, cy?: number) {
-    const local = this.globalToLocal(cx ?? this.cx, cy ?? this.cy);
+    const m0 = new Matrix2D();
+    m0.skewY(value, cx ?? this.cx, cy ?? this.cy);
 
-    this.matrix.translate(local.x, local.y);
-    this.matrix.skewY(value);
-    this.matrix.translate(-local.x, -local.y);
+    this.matrix.prependMatrix(m0);
 
-    // this.transform.skewY += value;
+    this.transform.skewY += value;
+
+    return this;
+  }
+
+  /**
+   * @param value 全量值
+   * @param cx
+   * @param cy
+   */
+  setSkewY(value: number): ViewBox;
+  setSkewY(value: number, cx: number, cy: number): ViewBox;
+  setSkewY(value: number, cx?: number, cy?: number) {
+    const skewY = this.transform.skewY;
+    const m0 = new Matrix2D();
+    m0.skewY(value - skewY, cx ?? this.cx, cy ?? this.cy);
+
+    this.matrix.prependMatrix(m0);
+
+    this.transform.skewY = value;
 
     return this;
   }
@@ -349,6 +403,7 @@ export class ViewBox {
 
   /**
    * 视图缩放，该缩放值是全量值，多次调用会覆盖上一次，如：setZoom(2) setZoom(4)，实际的缩放值为：4
+   * 避免精度问题，建议使用scale
    * @param value 缩放值，全量值
    */
   setZoom(value: number): ViewBox;
@@ -357,25 +412,23 @@ export class ViewBox {
     const scaleX = this.transform.scaleX;
     const scaleY = this.transform.scaleY;
 
-    cx = cx ?? this.cx;
-    cy = cy ?? this.cy;
-
-    const deltaX = this.x - cx;
-    const deltaY = this.y - cy;
-
     this.transform.scaleX = value;
     this.transform.scaleY = value;
 
-    this.refreshMatrix();
+    cx = cx ?? this.cx;
+    cy = cy ?? this.cy;
 
-    this.x = cx + deltaX * (value / scaleX);
-    this.y = cy + deltaY * (value / scaleY);
+    const m0 = new Matrix2D();
+    m0.scale(value / scaleX, value / scaleY, cx, cy);
+
+    this.matrix.prependMatrix(m0);
 
     return this;
   }
 
   /**
    * 视图旋转，该缩放值是全量值，多次调用会覆盖上一次，如：setRotation(10) setZoom(30)，实际的缩放值为：30
+   * 避免精度问题，建议使用rotate
    * @param value 旋转角度，全量值
    */
   setRotation(rotation: number): ViewBox;
@@ -389,30 +442,14 @@ export class ViewBox {
   }
 
   /**
-   * 自动对指定区域进行缩放，并将区域中心移动到指定的坐标，该区域为viewBox内容的实际区域，非全局坐标的区域
+   * 缩放以显示指定矩形区域(基于视图的区域)内容，并将区域中心移动到指定的坐标(transformOrigin)
    * @param rect
    */
-  zoomToRect(
-    rect: IRect,
-    options: {
-      size?: {
-        width: number;
-        height: number;
-      };
-      /**
-       * 自定义缩放值
-       */
-      scale?: number;
-      /**
-       * 距离viewbox的边界距离
-       */
-      padding?: number;
-      /**
-       * 自定义缩放中心坐标
-       */
-      transformOrigin?: IPoint;
-    } = {}
-  ) {
+  zoomToRect(rect: IRect, options: IZoomToRectOptions = {}) {
+    if (!rect) {
+      return this;
+    }
+
     const size = options?.size || {
       width: DEFAULT_WIDTH,
       height: DEFAULT_HEIGHT,
@@ -430,20 +467,29 @@ export class ViewBox {
     const rectCx = rect.x + rect.width / 2;
     const rectCy = rect.y + rect.height / 2;
 
-    const p0 = this.localToGlobal(rectCx, rectCy);
-    const p1 = {
-      x: cx,
-      y: cy,
-    };
-
-    this.setZoom(scale, p0.x, p0.y);
-
-    const tx = p1.x - p0.x;
-    const ty = p1.y - p0.y;
-
-    this.translate(tx, ty);
+    this.translate(cx - rectCx, cy - rectCy);
+    this.scale(scale, scale, cx, cy);
 
     return this;
+  }
+
+  /**
+   * 缩放以居中显示指定矩形区域内容
+   * @returns
+   */
+  zoomToFit(rect: IRect, options: Omit<IZoomToRectOptions, "transformOrigin"> = {}) {
+    const size = options?.size || {
+      width: DEFAULT_WIDTH,
+      height: DEFAULT_HEIGHT,
+    };
+
+    return this.zoomToRect(rect, {
+      ...options,
+      transformOrigin: {
+        x: size.width / 2,
+        y: size.height / 2,
+      },
+    });
   }
 
   reset() {

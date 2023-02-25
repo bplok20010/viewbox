@@ -86,17 +86,17 @@ export default function App() {
       update();
     });
 
-    // gui.add(setting, "skewX", -45, 45, 1).onChange((value: number) => {
-    //   viewBox.setSkewX(value, setting.cx, setting.cy);
+    gui.add(setting, "skewX", -45, 45, 1).onChange((value: number) => {
+      viewBox.setSkewX(value, setting.cx, setting.cy);
 
-    //   update();
-    // });
+      update();
+    });
 
-    // gui.add(setting, "skewY", -45, 45, 1).onChange((value: number) => {
-    //   viewBox.setSkewY(value, setting.cx, setting.cy);
+    gui.add(setting, "skewY", -45, 45, 1).onChange((value: number) => {
+      viewBox.setSkewY(value, setting.cx, setting.cy);
 
-    //   update();
-    // });
+      update();
+    });
 
     gui.add(setting, "flipX").onChange(() => {
       viewBox.flipX(setting.cx, setting.cy);
@@ -108,11 +108,30 @@ export default function App() {
     });
 
     gui.add(setting, "zoomToFit").onChange(() => {
-      viewBox.zoomToRect({
-        x: rect.left,
-        y: rect.top,
-        ...rect,
-      });
+      const p0 = viewBox.localToGlobal(rect.left, rect.top);
+      const p1 = viewBox.localToGlobal(rect.left + rect.width, rect.top);
+      const p2 = viewBox.localToGlobal(rect.left + rect.width, rect.top + rect.height);
+      const p3 = viewBox.localToGlobal(rect.left, rect.top + rect.height);
+
+      const minX = Math.min(p0.x, p1.x, p2.x, p3.x);
+      const minY = Math.min(p0.y, p1.y, p2.y, p3.y);
+      const maxX = Math.max(p0.x, p1.x, p2.x, p3.x);
+      const maxY = Math.max(p0.y, p1.y, p2.y, p3.y);
+
+      viewBox.zoomToFit(
+        {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        },
+        {
+          size: {
+            width: 600,
+            height: 400,
+          },
+        }
+      );
       update();
     });
 

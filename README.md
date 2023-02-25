@@ -33,6 +33,10 @@ console.log(viewBox.getTransform());
 import { Matrix2D } from "matrix2d.js";
 import type { IPoint, IRect } from "./types";
 export interface Transform {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
   x: number;
   y: number;
   scaleX: number;
@@ -40,6 +44,8 @@ export interface Transform {
   rotation: number;
   flipX: boolean;
   flipY: boolean;
+  skewX: number;
+  skewY: number;
 }
 export interface IViewBoxOptions {
   transform?: Partial<Transform>;
@@ -70,13 +76,16 @@ export declare class ViewBox {
   set x(value: number);
   get y(): number;
   set y(value: number);
-  protected refreshMatrix(): void;
   getPosition(): {
     x: number;
     y: number;
   };
   setPosition(x: number, y: number): this;
   getTransform(): {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
     x: number;
     y: number;
     scaleX: number;
@@ -84,6 +93,8 @@ export declare class ViewBox {
     rotation: number;
     flipX: boolean;
     flipY: boolean;
+    skewX: number;
+    skewY: number;
   };
   setTransform(transform: Partial<Transform>): this;
   getMatrixObject(): Matrix2D;
@@ -137,10 +148,14 @@ export declare class ViewBox {
    */
   flipY(): ViewBox;
   flipY(cx: number, cy: number): ViewBox;
-  // skewX(value: number): ViewBox;
-  // skewX(value: number, cx: number, cy: number): ViewBox;
-  // skewY(value: number): ViewBox;
-  // skewY(value: number, cx: number, cy: number): ViewBox;
+  skewX(value: number): ViewBox;
+  skewX(value: number, cx: number, cy: number): ViewBox;
+  setSkewX(value: number): ViewBox;
+  setSkewX(value: number, cx: number, cy: number): ViewBox;
+  skewY(value: number): ViewBox;
+  skewY(value: number, cx: number, cy: number): ViewBox;
+  setSkewY(value: number): ViewBox;
+  setSkewY(value: number, cx: number, cy: number): ViewBox;
   /**
    * 获取当前缩放值
    * @returns
@@ -159,7 +174,7 @@ export declare class ViewBox {
   setRotation(rotation: number): ViewBox;
   setRotation(rotation: number, cx: number, cy: number): ViewBox;
   /**
-   * 自动对指定区域进行缩放，并将区域中心移动到指定的坐标，该区域为viewBox内容的实际区域，非全局坐标的区域
+   * 缩放以显示指定矩形区域(基于视图的区域)内容，并将区域中心移动到指定的坐标(transformOrigin)
    * @param rect
    */
   zoomToRect(
@@ -183,6 +198,27 @@ export declare class ViewBox {
       transformOrigin?: IPoint;
     }
   ): this;
+  /**
+   * 缩放以居中显示指定矩形区域内容
+   * @returns
+   */
+  zoomToFit(
+    rect: IRect,
+    options?: {
+      size?: {
+        width: number;
+        height: number;
+      };
+      /**
+       * 自定义缩放值
+       */
+      scale?: number;
+      /**
+       * 距离viewbox的边界距离
+       */
+      padding?: number;
+    }
+  ): this;
   reset(): this;
   toCSS(): string;
   clone(): ViewBox;
@@ -191,7 +227,12 @@ export declare class ViewBox {
 
 ## Dev
 
-```
+```shell
 yarn
 
+# ./examples
+yarn start
+
+# publish
+yarn release
 ```
