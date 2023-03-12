@@ -1,6 +1,6 @@
 import { Matrix2D } from "matrix2d.js";
 
-import type { IPoint, IRect } from "./types";
+import type { IPoint, IRect, ISize } from "./types";
 
 export interface Transform {
   a: number;
@@ -25,18 +25,35 @@ export interface IViewBoxOptions {
 
 export interface IZoomToRectOptions {
   /**
+   * 基于指定矩阵重置再进行缩放
+   */
+  matrix?: [number, number, number, number, number, number];
+  /**
    * 视图宽高,默认400x400
    */
-  size?: {
-    width: number;
-    height: number;
-  };
+  viewBoxSize?: ISize;
   /**
-   * 自定义缩放值
+   * alias viewBoxSize
+   * @deprecated
+   */
+  size?: ISize;
+  /**
+   * 自定义缩放值，优先级高于objectFit
    */
   scale?: number;
   /**
-   * 距离视图的边界距离
+   * 5种缩放模式，默认：contain
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
+   *
+   * objectPosition为center
+   */
+  objectFit?: "fill" | "contain" | "cover" | "none" | "scale-down";
+  /**
+   * TODO: objectPosition support
+   */
+  // objectPosition?: any
+  /**
+   * 相对视图的边界距离
    */
   padding?: number;
   /**
@@ -47,6 +64,10 @@ export interface IZoomToRectOptions {
 
 const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 400;
+
+function isset(value) {
+  return !(value == null);
+}
 
 function getDefaultTransform(): Transform {
   return {
@@ -209,7 +230,7 @@ export class ViewBox {
   }
 
   /**
-   * 绝对坐标(相对viewBox)转本地坐标(viewBox内容实际坐标)
+   * 视图坐标(相对viewBox)转本地坐标(viewBox内容实际坐标)
    * @examples
    * viewBox.translate(100, 100)
    * viewBox.globalToLocal(0, 0) // {x: -100, y: -100}
@@ -219,7 +240,7 @@ export class ViewBox {
   }
 
   /**
-   * 本地坐标(viewBox内容实际坐标)转绝对坐标(相对viewBox)
+   * 本地坐标(viewBox内容实际坐标)转视图坐标(相对viewBox)
    * @examples
    * viewBox.translate(100, 100)
    * viewBox.localToGlobal(-100, -100) // {x: 0, y: 0}
@@ -230,7 +251,7 @@ export class ViewBox {
 
   /**
    * 对viewBox内容进行平移
-   * @param x 相对viewBox的（绝对坐标）x偏移量
+   * @param x 相对viewBox的（视图坐标）x偏移量
    * @param y 同上 y偏移量
    * @returns
    */
@@ -249,7 +270,7 @@ export class ViewBox {
   }
 
   /**
-   * 对viewBox内容进行缩放，cx,cy均指相对viewBox（绝对坐标）
+   * 对viewBox内容进行缩放，cx,cy均指相对viewBox（视图坐标）
    * 缩放值scaleX 和 scaleY 叠加上一个缩放值，eg: scale(2,2) scale(3,3) 实际缩放内容为：x、y都缩放了6倍
    * @param scaleX
    * @param scaleY
@@ -269,7 +290,7 @@ export class ViewBox {
   }
 
   /**
-   * 对viewBox内容进行旋转，cx,cy均指相对viewBox（绝对坐标）
+   * 对viewBox内容进行旋转，cx,cy均指相对viewBox（视图坐标）
    * @param rotation 需要旋转的角度，该值会和上一次选择值叠加，eg: rotate(10) rotate(10)，实际旋转角度为：20
    */
   rotate(rotation: number): ViewBox;
@@ -287,7 +308,7 @@ export class ViewBox {
 
   /**
    * x 轴翻转
-   * cx,cy均指相对viewBox（绝对坐标）
+   * cx,cy均指相对viewBox（视图坐标）
    */
   flipX(): ViewBox;
   flipX(cx: number, cy: number): ViewBox;
@@ -307,7 +328,7 @@ export class ViewBox {
 
   /**
    * y 轴翻转
-   * cx,cy均指相对viewBox（绝对坐标）
+   * cx,cy均指相对viewBox（视图坐标）
    */
   flipY(): ViewBox;
   flipY(cx: number, cy: number): ViewBox;
@@ -443,6 +464,43 @@ export class ViewBox {
     return this;
   }
 
+  getObjectFitScale(
+    objectFit: IZoomToRectOptions["objectFit"],
+    nodeSize: ISize,
+    viewBoxSize: ISize
+  ) {
+    let scaleX = 1,
+      scaleY = 1;
+    const { width, height } = nodeSize;
+    const vWidth = viewBoxSize.width;
+    const vHeight = viewBoxSize.height;
+
+    switch (objectFit) {
+      case "cover":
+        scaleX = scaleY = Math.max(vWidth / width, vHeight / height);
+        break;
+      case "none":
+        scaleX = scaleY = 1;
+        break;
+      case "scale-down":
+        scaleX = scaleY = Math.min(1, Math.min(vWidth / width, vHeight / height));
+        break;
+      case "fill":
+        scaleX = vWidth / width;
+        scaleY = vHeight / height;
+        break;
+      default:
+        //case "contain":
+        scaleX = scaleY = Math.min(vWidth / width, vHeight / height);
+        break;
+    }
+
+    return {
+      scaleX,
+      scaleY,
+    };
+  }
+
   /**
    * 缩放以显示指定矩形区域(基于视图的区域)内容，并将区域中心移动到指定的坐标(transformOrigin)
    * @param rect
@@ -452,16 +510,44 @@ export class ViewBox {
       return this;
     }
 
-    const size = options?.size || {
-      width: DEFAULT_WIDTH,
-      height: DEFAULT_HEIGHT,
-    };
+    if (options.matrix) {
+      const m = options.matrix;
+      this.setTransform({
+        a: m[0],
+        b: m[1],
+        c: m[2],
+        d: m[3],
+        x: m[4],
+        y: m[5],
+      });
+    }
+
+    const objectFit = options.objectFit || "contain";
+
+    const size = options?.viewBoxSize ||
+      options?.size || {
+        width: DEFAULT_WIDTH,
+        height: DEFAULT_HEIGHT,
+      };
     const padding = options.padding ?? 0;
 
     const vWidth = size.width - padding * 2;
     const vHeight = size.height - padding * 2;
 
-    const scale = options.scale ?? Math.min(vWidth / rect.width, vHeight / rect.height);
+    let scaleX = 1,
+      scaleY = 1;
+
+    if (isset(options.scale)) {
+      scaleX = scaleY = options.scale;
+    } else {
+      const r = this.getObjectFitScale(objectFit, rect, {
+        width: vWidth,
+        height: vHeight,
+      });
+
+      scaleX = r.scaleX;
+      scaleY = r.scaleY;
+    }
 
     const cx = options.transformOrigin ? options.transformOrigin.x : this.cx;
     const cy = options.transformOrigin ? options.transformOrigin.y : this.cy;
@@ -470,7 +556,7 @@ export class ViewBox {
     const rectCy = rect.y + rect.height / 2;
 
     this.translate(cx - rectCx, cy - rectCy);
-    this.scale(scale, scale, cx, cy);
+    this.scale(scaleX, scaleY, cx, cy);
 
     return this;
   }
@@ -480,10 +566,11 @@ export class ViewBox {
    * @returns
    */
   zoomToFit(rect: IRect, options: Omit<IZoomToRectOptions, "transformOrigin"> = {}) {
-    const size = options?.size || {
-      width: DEFAULT_WIDTH,
-      height: DEFAULT_HEIGHT,
-    };
+    const size = options?.viewBoxSize ||
+      options?.size || {
+        width: DEFAULT_WIDTH,
+        height: DEFAULT_HEIGHT,
+      };
 
     return this.zoomToRect(rect, {
       ...options,
@@ -495,7 +582,15 @@ export class ViewBox {
   }
 
   reset() {
-    this.matrix = new Matrix2D();
+    const m = new Matrix2D();
+    this.setTransform({
+      a: m.a,
+      b: m.b,
+      c: m.c,
+      d: m.d,
+      x: m.tx,
+      y: m.ty,
+    });
 
     return this;
   }

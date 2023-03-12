@@ -33,7 +33,7 @@ console.log(viewBox.getTransform());
 
 ```ts
 import { Matrix2D } from "matrix2d.js";
-import type { IPoint, IRect } from "./types";
+import type { IPoint, IRect, ISize } from "./types";
 export interface Transform {
   a: number;
   b: number;
@@ -49,6 +49,36 @@ export interface Transform {
   skewX: number;
   skewY: number;
 }
+
+export interface IZoomToRectOptions {
+  /**
+   * 基于指定矩阵重置再进行缩放
+   */
+  matrix?: [number, number, number, number, number, number];
+  /**
+   * 视图宽高,默认400x400
+   */
+  viewBoxSize?: ISize;
+  /**
+   * 自定义缩放值，优先级高于objectFit
+   */
+  scale?: number;
+  /**
+   * 5种缩放模式，默认：contain
+   * https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
+   *
+   */
+  objectFit?: "fill" | "contain" | "cover" | "none" | "scale-down";
+  /**
+   * 相对视图的边界距离
+   */
+  padding?: number;
+  /**
+   * 自定义缩放中心坐标
+   */
+  transformOrigin?: IPoint;
+}
+
 export interface IViewBoxOptions {
   transform?: Partial<Transform>;
   transformOrigin?: IPoint;
@@ -187,48 +217,12 @@ export declare class ViewBox {
    * 缩放以显示指定矩形区域(基于视图的区域)内容，并将区域中心移动到指定的坐标(transformOrigin)
    * @param rect
    */
-  zoomToRect(
-    rect: IRect,
-    options?: {
-      size?: {
-        width: number;
-        height: number;
-      };
-      /**
-       * 自定义缩放值
-       */
-      scale?: number;
-      /**
-       * 距离viewbox的边界距离
-       */
-      padding?: number;
-      /**
-       * 自定义缩放中心坐标
-       */
-      transformOrigin?: IPoint;
-    }
-  ): this;
+  zoomToRect(rect: IRect, options?: IZoomToRectOptions): this;
   /**
    * 缩放以居中显示指定矩形区域内容
    * @returns
    */
-  zoomToFit(
-    rect: IRect,
-    options?: {
-      size?: {
-        width: number;
-        height: number;
-      };
-      /**
-       * 自定义缩放值
-       */
-      scale?: number;
-      /**
-       * 距离viewbox的边界距离
-       */
-      padding?: number;
-    }
-  ): this;
+  zoomToFit(rect: IRect, options?: Omit<IZoomToRectOptions, "transformOrigin">): this;
   reset(): this;
   toCSS(): string;
   clone(): ViewBox;

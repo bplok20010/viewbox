@@ -561,4 +561,346 @@ describe("ViewBox", () => {
       ty: "25.864638",
     });
   });
+
+  it("object-fit-contain-1", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 1200,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "0.000000",
+      ty: "0.000000",
+    });
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.250000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.250000",
+      tx: "0.000000",
+      ty: "0.000000",
+    });
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+      matrix: [1, 0, 0, 1, 0, 0],
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "0.000000",
+      ty: "0.000000",
+    });
+  });
+
+  it("object-fit-contain-2", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "100.000000",
+      ty: "0.000000",
+    });
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.250000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.250000",
+      tx: "150.000000",
+      ty: "0.000000",
+    });
+
+    viewBox.zoomToFit(docRect, {
+      viewBoxSize,
+      matrix: [1, 0, 0, 1, 0, 0],
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "100.000000",
+      ty: "0.000000",
+    });
+  });
+
+  it("object-fit-fill- 1", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "fill",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.750000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "0.000000",
+      ty: "0.000000",
+    });
+  });
+
+  it("object-fit-fill-2", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 100,
+      y: 100,
+      width: 400,
+      height: 300,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "fill",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "1.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "2.000000",
+      tx: "-150.000000",
+      ty: "-200.000000",
+    });
+  });
+
+  it("object-fit-cover- 1", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "cover",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.750000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.750000",
+      tx: "0.000000",
+      ty: "-150.000000",
+    });
+  });
+
+  it("object-fit-cover-2", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 100,
+      y: 100,
+      width: 400,
+      height: 300,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "cover",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "2.000000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "2.000000",
+      tx: "-300.000000",
+      ty: "-200.000000",
+    });
+  });
+
+  it("object-fit-none- 1", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "none",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "1.000000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "1.000000",
+      tx: "-100.000000",
+      ty: "-300.000000",
+    });
+  });
+
+  it("object-fit-none-2", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 100,
+      y: 100,
+      width: 400,
+      height: 300,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "none",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "1.000000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "1.000000",
+      tx: "0.000000",
+      ty: "50.000000",
+    });
+  });
+
+  it("object-fit-scale-down- 1", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 1200,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "scale-down",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "0.500000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "0.500000",
+      tx: "100.000000",
+      ty: "0.000000",
+    });
+  });
+
+  it("object-fit-scale-down-2", () => {
+    const viewBox = new ViewBox();
+
+    const viewBoxSize = {
+      width: 600,
+      height: 600,
+    };
+    const docRect = {
+      x: 100,
+      y: 100,
+      width: 400,
+      height: 300,
+    };
+
+    viewBox.zoomToFit(docRect, {
+      objectFit: "scale-down",
+      viewBoxSize,
+    });
+
+    expect(toArray(viewBox.getMatrixObject())).toEqual({
+      a: "1.000000",
+      b: "0.000000",
+      c: "0.000000",
+      d: "1.000000",
+      tx: "0.000000",
+      ty: "50.000000",
+    });
+  });
 });
